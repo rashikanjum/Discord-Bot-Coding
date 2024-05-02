@@ -1,0 +1,84 @@
+import discord
+from discord.ext import commands
+
+intents = discord.Intents.default()
+intents.message_content = True  # Enable message content intent
+
+bot = commands.Bot(command_prefix='?', intents=intents)
+
+@bot.event
+async def on_ready():
+    print('Bot is online!')
+
+@bot.command()
+async def hello(ctx):
+    await ctx.send('Hello, I am your friendly bot!')
+
+@bot.command()
+@commands.has_permissions(ban_members=True)
+async def ban(ctx, member: discord.Member, *, reason="No reason provided"):
+    await member.ban(reason=reason)
+    await ctx.send(f"{member.mention} has been banned. Reason: {reason}")
+
+@bot.command()
+@commands.has_permissions(kick_members=True)
+async def kick(ctx, member: discord.Member, *, reason="No reason provided"):
+    await member.kick(reason=reason)
+    await ctx.send(f"{member.mention} has been kicked. Reason: {reason}")
+
+@bot.command()
+@commands.has_permissions(manage_messages=True)
+async def clear(ctx, amount: int):
+    await ctx.channel.purge(limit=amount + 1)
+    await ctx.send(f"{amount} messages cleared.")
+
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def mute(ctx, member: discord.Member):
+    muted_role = discord.utils.get(ctx.guild.roles, name="Muted")
+    await member.add_roles(muted_role)
+    await ctx.send(f"{member.mention} has been muted.")
+
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def unmute(ctx, member: discord.Member):
+    muted_role = discord.utils.get(ctx.guild.roles, name="Muted")
+    await member.remove_roles(muted_role)
+    await ctx.send(f"{member.mention} has been unmuted.")
+
+@bot.command()
+@commands.has_permissions(ban_members=True)
+async def unban(ctx, *, member):
+    banned_users = await ctx.guild.bans()
+    member_name, member_discriminator = member.split("#")
+    for ban_entry in banned_users:
+        user = ban_entry.user
+        if (user.name, user.discriminator) == (member_name, member_discriminator):
+            await ctx.guild.unban(user)
+            await ctx.send(f"{user.mention} has been unbanned.")
+            return
+    await ctx.send(f"User {member} not found in the ban list.")
+
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def createrole(ctx, *, role_name):
+    await ctx.guild.create_role(name=role_name)
+    await ctx.send(f"Role '{role_name}' created.")
+
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def deleterole(ctx, *, role_name):
+    role = discord.utils.get(ctx.guild.roles, name=role_name)
+    if role:
+        await role.delete()
+        await ctx.send(f"Role '{role_name}' deleted.")
+    else:
+        await ctx.send(f"Role '{role_name}' not found.")
+
+@bot.command()
+@commands.has_permissions(manage_nicknames=True)
+async def nickname(ctx, member: discord.Member, *, new_nickname):
+    await member.edit(nick=new_nickname)
+    await ctx.send(f"Nickname for {member.mention} changed to '{new_nickname}'.")
+
+bot.run('token')
